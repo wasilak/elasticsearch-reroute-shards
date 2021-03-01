@@ -30,7 +30,7 @@ def get_shards_info(arguments, disk_space_info):
     largest_already_on_target = df_from[df_from['node'].str.contains(arguments.to_node) & ~df_from['index'].str.startswith(".") & df_from['state'].str.contains("STARTED")]
 
     # calculating difference in order to not try move shards belonging to indices already on target node
-    largest = largest[largest["index"].isin(largest_already_on_target["index"]) is False]
+    largest = largest[~largest["index"].isin(largest_already_on_target["index"])]
 
     # smallest = df_from[df_from['node'].str.contains(arguments.to_node) & ~df_from['index'].str.startswith(".") & ~df_from['node'].str.contains(arguments.from_node)]
     # smallest = smallest.nsmallest(arguments.shards, "store")
