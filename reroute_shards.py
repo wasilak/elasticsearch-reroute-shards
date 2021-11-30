@@ -4,6 +4,8 @@ import argparse
 import pandas as pd
 import logging
 
+auth = ("", "")
+
 
 def prepare_move_command(item, from_node, to_node):
     command = {
@@ -19,7 +21,7 @@ def prepare_move_command(item, from_node, to_node):
 
 def get_shards_info(arguments, disk_space_info):
     # from/largest shards
-    shards = requests.get("{}/_cat/shards?format=json&bytes=b".format(arguments.host)).json()
+    shards = requests.get("{}/_cat/shards?format=json&bytes=b".format(arguments.host), auth=auth).json()
 
     df_from = pd.DataFrame.from_dict(shards, orient='columns')
 
@@ -56,7 +58,7 @@ def get_shards_info(arguments, disk_space_info):
 
 def get_disk_space_info(arguments):
 
-    disk_space_info = requests.get("{}/_cat/nodes?v&h=name,disk.used,node.role&format=json&bytes=b".format(arguments.host)).json()
+    disk_space_info = requests.get("{}/_cat/nodes?v&h=name,disk.used,node.role&format=json&bytes=b".format(arguments.host), auth=auth).json()
 
     df_space = pd.DataFrame.from_dict(disk_space_info, orient='columns')
     df_space['disk.used'] = pd.to_numeric(df_space['disk.used'])
@@ -116,7 +118,7 @@ def execute_move_commands(arguments, move_commands):
         "Content-Type": "application/json"
     }
 
-    reroute_result = requests.post("{}/_cluster/reroute".format(arguments.host), data=json.dumps(shards_reroute), headers=reroute_headers)
+    reroute_result = requests.post("{}/_cluster/reroute".format(arguments.host), data=json.dumps(shards_reroute), headers=reroute_headers, auth=auth)
 
     reroute_result = reroute_result.json()
 

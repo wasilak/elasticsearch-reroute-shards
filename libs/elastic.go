@@ -1,96 +1,291 @@
 package libs
 
 import (
+	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"sort"
 	"strconv"
-	"time"
+	"strings"
+
+	"github.com/montanaflynn/stats"
 )
 
-var log string
+type Elastic struct {
+	Logger       *Logger
+	HttpClient   *http.Client
+	HttpUsername string
+	HttpPassword string
+}
 
-var myClient = &http.Client{Timeout: 10 * time.Second}
+func basicAuth(username, password string) string {
+	auth := username + ":" + password
+	return base64.StdEncoding.EncodeToString([]byte(auth))
+}
 
-func getJSON(url string, target interface{}) error {
-    r, err := myClient.Get(url)
-    if err != nil {
-        return err
-    }
-    defer r.Body.Close()
+func (e *Elastic) runRequest(method string, url string, target interface{}, payload []byte) error {
+	req, err := http.NewRequest(method, url, bytes.NewBuffer(payload))
 
-    return json.NewDecoder(r.Body).Decode(target)
+	req.Header.Add("Authorization", "Basic "+basicAuth(e.HttpUsername, e.HttpPassword))
+	req.Header.Add("Content-Type", "application/json")
+
+	resp, err := e.HttpClient.Do(req)
+	if err != nil {
+		return err
+	}
+
+	defer resp.Body.Close()
+
+	return json.NewDecoder(resp.Body).Decode(target)
 }
 
 type node struct {
-	Name string `json:"name"`
-	DiskUsedString string `json:"disk.used"`
-	DiskUsed int64
+	Name     string `json:"name"`
+	DiskUsed int    `json:"disk.used,string"`
 	NodeRole string `json:"node.role"`
 }
 
+type shard struct {
+	Index string `json:"index"`
+	Shard string `json:"shard"`
+	State string `json:"state"`
+	Store int    `json:"store,string"`
+	Node  string `json:"node"`
+}
+
+type rebalanceInfo struct {
+	Largest    node
+	Smallest   node
+	MeanSize   int
+	DiffInSize struct {
+		Largest  int
+		Smallest int
+	}
+	DiffInSizePercent struct {
+		Largest  int
+		Smallest int
+	}
+	PercentOfDifference  int
+	ProceedWithRebalance bool
+}
+
 type diskSpaceInfoResponse []node
+type shardsInfoResponse []shard
+
+type MoveCommand struct {
+	Move struct {
+		Index    string `json:"index"`
+		Shard    string `json:"shard"`
+		FromNode string `json:"from_node"`
+		ToNode   string `json:"to_node"`
+	} `json:"move"`
+}
+
+type ShardsReroute struct {
+	Commands []MoveCommand `json:"commands"`
+}
+
+type rerouteResponse struct {
+	Acknowledged bool `json:"acknowledged"`
+}
+
+func findNodeByName(nodes []node, nodeName string) node {
+	var result node
+	for i := 1; i < len(nodes); i++ {
+		if nodes[i].Name == nodeName {
+			result = nodes[i]
+			break
+		}
+	}
+
+	return result
+}
 
 // GetDiskSpaceInfo func
-func GetDiskSpaceInfo(log string, url string) {
+func (e Elastic) GetDiskSpaceInfo(url string, allowedPercentOfDifference int, fromNode string, toNode string) rebalanceInfo {
 
 	diskSpaceInfo := diskSpaceInfoResponse{}
-    getJSON(fmt.Sprintf("%s/_cat/nodes?v&h=name,disk.used,node.role&format=json&bytes=b", url), &diskSpaceInfo)
+	var payload []byte
+	err := e.runRequest("GET", fmt.Sprintf("%s/_cat/nodes?v&h=name,disk.used,node.role&format=json&bytes=b", url), &diskSpaceInfo, payload)
+	if err != nil {
+		e.Logger.Instance.Fatal(err)
+	}
 
-	// strconv.ParseInt(diskSpaceInfo.DiskUsedString, 10, 64)
+	// filter only data nodes
+	dataNodes := diskSpaceInfoResponse{}
 	for i := range diskSpaceInfo {
-		var err error
-		diskSpaceInfo[i].DiskUsed, err = strconv.ParseInt(diskSpaceInfo[i].DiskUsedString, 10, 64)
-		if err != nil {
-			fmt.Printf("%+v\n", err)
+		if strings.Contains(diskSpaceInfo[i].NodeRole, "d") {
+			dataNodes = append(dataNodes, diskSpaceInfo[i])
 		}
-		// fmt.Printf("%+v\n", node.DiskUsedString)
+	}
+
+	var nodeWithMinUsage node
+	if toNode == "" {
+		// finding node with min disk usage
+		nodeWithMinUsage = dataNodes[0]
+		for i := 1; i < len(dataNodes); i++ {
+			if nodeWithMinUsage.DiskUsed > dataNodes[i].DiskUsed {
+				nodeWithMinUsage = dataNodes[i]
+			}
+		}
+	} else {
+		nodeWithMinUsage = findNodeByName(dataNodes, toNode)
+	}
+
+	var nodeWithMaxUsage node
+	if fromNode == "" {
+		// finding node with max disk usage
+		nodeWithMaxUsage = dataNodes[0]
+		for i := 1; i < len(dataNodes); i++ {
+			if nodeWithMaxUsage.DiskUsed < dataNodes[i].DiskUsed {
+				nodeWithMaxUsage = dataNodes[i]
+			}
+		}
+	} else {
+		nodeWithMaxUsage = findNodeByName(dataNodes, fromNode)
+	}
+
+	// preparing data for stats package
+	data := []float64{}
+	for i := 0; i < len(dataNodes); i++ {
+		data = append(data, float64(dataNodes[i].DiskUsed))
+	}
+
+	meanUsage, _ := stats.Mean(data)
+
+	// diff in size between min/max and mean
+	minDiffInSize := nodeWithMinUsage.DiskUsed - int(meanUsage)
+	maxDiffInSize := nodeWithMaxUsage.DiskUsed - int(meanUsage)
+
+	// percentage diff in size between min/max and mean
+	minDiffInSizePercent := minDiffInSize * 100 / int(meanUsage)
+	maxDiffInSizePercent := maxDiffInSize * 100 / int(meanUsage)
+
+	// is rebalance needed?
+	// proceedWithRebalance := maxDiffInSizePercent > int64(allowedPercentOfDifference)
+	// e.Logger.Instance.Info(fmt.Sprintf("proceedWithRebalance = %+v", proceedWithRebalance))
+
+	// # based on standard deviation percentage
+	// # https://www.chem.tamu.edu/class/fyp/keeney/stddev.pdf
+	standardDeviation, _ := stats.StandardDeviation(data)
+
+	standardDeviationPercent := standardDeviation * 100 / meanUsage
+
+	proceedWithRebalance := int(standardDeviationPercent) > allowedPercentOfDifference
+
+	return rebalanceInfo{
+		Largest:  nodeWithMaxUsage,
+		Smallest: nodeWithMinUsage,
+		MeanSize: int(meanUsage),
+		DiffInSize: struct {
+			Largest  int
+			Smallest int
+		}{
+			Largest:  maxDiffInSize,
+			Smallest: minDiffInSize,
+		},
+		DiffInSizePercent: struct {
+			Largest  int
+			Smallest int
+		}{
+			Largest:  maxDiffInSizePercent,
+			Smallest: minDiffInSizePercent,
+		},
+		PercentOfDifference:  int(standardDeviationPercent),
+		ProceedWithRebalance: proceedWithRebalance,
+	}
+}
+
+func (e Elastic) GetShardsInfo(url string, diskSpaceInfo rebalanceInfo, shardsToMove int) []shard {
+	// from/largest shards
+	shardsInfo := shardsInfoResponse{}
+	var payload []byte
+	err := e.runRequest("GET", fmt.Sprintf("%s/_cat/shards?format=json&bytes=b", url), &shardsInfo, payload)
+	if err != nil {
+		e.Logger.Instance.Fatal(err)
+	}
+
+	// shards on source
+	var shardsOnSource []shard
+	for i := 0; i < len(shardsInfo); i++ {
+		if shardsInfo[i].Node == diskSpaceInfo.Largest.Name {
+			shardsOnSource = append(shardsOnSource, shardsInfo[i])
+		}
+	}
+
+	// shards on target
+	var shardsOnTarget []shard
+	for i := 0; i < len(shardsInfo); i++ {
+		if shardsInfo[i].Node == diskSpaceInfo.Smallest.Name {
+			shardsOnTarget = append(shardsOnTarget, shardsInfo[i])
+		}
+	}
+
+	var shardsAvailableForMove []shard
+	// filtering out shards of indices already on target
+	for i := 0; i < len(shardsOnSource); i++ {
+		canBeMoved := true
+		for j := 1; j < len(shardsOnTarget); j++ {
+			if shardsOnSource[i].Index == shardsOnTarget[j].Index || shardsOnSource[i].State != "STARTED" {
+				canBeMoved = false
+				break
+			}
+		}
+
+		if canBeMoved {
+			shardsAvailableForMove = append(shardsAvailableForMove, shardsOnSource[i])
+		}
+	}
+
+	// sorting by Store size, desc
+	sort.Slice(shardsAvailableForMove, func(i, j int) bool {
+		return shardsAvailableForMove[i].Store > shardsAvailableForMove[j].Store
+	})
+
+	// finding N largest shards
+	shardsAvailableForMove = shardsAvailableForMove[:shardsToMove]
+
+	return shardsAvailableForMove
+}
+
+func (e Elastic) PrepareMoveCommand(shards []shard, fromNode, toNode string) ShardsReroute {
+
+	shardsReroute := ShardsReroute{}
+
+	for i := 0; i < len(shards); i++ {
+
+		command := MoveCommand{
+			Move: struct {
+				Index    string `json:"index"`
+				Shard    string `json:"shard"`
+				FromNode string `json:"from_node"`
+				ToNode   string `json:"to_node"`
+			}{
+				Index:    shards[i].Index,
+				Shard:    shards[i].Shard,
+				FromNode: fromNode,
+				ToNode:   toNode,
+			},
+		}
+
+		shardsReroute.Commands = append(shardsReroute.Commands, command)
 
 	}
-	
+	return shardsReroute
+}
 
-	fmt.Printf("%+v\n", fmt.Sprintf("%s/_cat/nodes?v&h=name,disk.used,node.role&format=json&bytes=b", url))
-	fmt.Printf("%+v\n", diskSpaceInfo)
+func (e Elastic) ExecuteMoveCommands(url string, moveCommands ShardsReroute, dryRun bool) {
 
-    // df_space = pd.DataFrame.from_dict(disk_space_info, orient='columns')
-    // df_space['disk.used'] = pd.to_numeric(df_space['disk.used'])
+	bytesMoveCommand, _ := json.Marshal(moveCommands)
+	e.Logger.Instance.Info(fmt.Sprintf("moveCommands = %+v", string(bytesMoveCommand)))
 
-    // df_space = df_space[df_space['node.role'].str.contains("d")]
+	reroute := rerouteResponse{}
+	err := e.runRequest("POST", fmt.Sprintf("%s/_cluster/reroute?dry_run="+strconv.FormatBool(dryRun), url), &reroute, bytesMoveCommand)
+	if err != nil {
+		e.Logger.Instance.Fatal(err)
+	}
 
-    // largest = df_space.nlargest(1, "disk.used")
-    // smallest = df_space.nsmallest(1, "disk.used")
-
-    // mean_size = df_space["disk.used"].mean()
-
-    // largest = largest.to_dict(orient='records')[0]
-    // smallest = smallest.to_dict(orient='records')[0]
-
-    // largest_diff_in_size = largest["disk.used"] - mean_size
-    // smallest_diff_in_size = smallest["disk.used"] - mean_size
-
-    // largest_diff_in_size_percent = largest_diff_in_size * 100 / mean_size
-    // smallest_diff_in_size_percent = smallest_diff_in_size * 100 / mean_size
-
-    // # manually calculated percentage
-    // # proceed_with_rebalance = largest_diff_in_size_percent > allowed_percent_of_difference
-
-    // # based on standard deviation percentage
-    // # https://www.chem.tamu.edu/class/fyp/keeney/stddev.pdf
-    // standard_deviation_percent = round(df_space.std()["disk.used"] * 100 / df_space.mean()["disk.used"], 1)
-    // proceed_with_rebalance = standard_deviation_percent > arguments.allowed_percent_of_difference
-
-    // return proceed_with_rebalance, {
-    //     "largest": largest,
-    //     "smallest": smallest,
-    //     "mean_size": mean_size,
-    //     "diff_in_size": {
-    //         "largest": largest_diff_in_size,
-    //         "smallest": smallest_diff_in_size,
-    //     },
-    //     "diff_in_size_percent": {
-    //         "largest": largest_diff_in_size_percent,
-    //         "smallest": smallest_diff_in_size_percent,
-    //     },
-    //     "percent_of_difference": standard_deviation_percent,
-    // }
+	e.Logger.Instance.Info(fmt.Sprintf("rerouteResponse = %+v", reroute))
 }
