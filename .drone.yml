@@ -1,0 +1,140 @@
+---
+kind: pipeline
+type: docker
+name: build & deploy linux/amd64
+
+workspace:
+  path: /drone/src
+
+platform:
+  os: linux
+  arch: arm64
+
+environment:
+  GOOS: linux
+  GOARCH: amd64
+  BUILDPLATFORM: linux/amd64
+  TARGETPLATFORM: linux/amd64
+
+steps:
+  - name: build executable
+    image: quay.io/wasilak/golang:1.17-alpine
+    pull: if-not-exists
+    commands:
+      - go build -o ./dist/elasticsearch-reroute-shards-$${GOOS}-$${GOARCH}
+
+  - name: upload executable
+    image: plugins/s3
+    settings:
+      bucket: drone-cache
+      endpoint: http://minio.service.consul
+      path_style: true
+      access_key:
+        from_secret: aws_access_key_id
+      secret_key:
+        from_secret: aws_secret_access_key
+      region:
+        from_secret: aws_region
+      source: dist/*
+      target: /${DRONE_REPO}/${DRONE_REPO_BRANCH}/${DRONE_BUILD_NUMBER}
+      strip_prefix: dist/
+    depends_on:
+      - build executable
+
+---
+kind: pipeline
+type: docker
+name: build & deploy linux/arm64
+
+workspace:
+  path: /drone/src
+
+platform:
+  os: linux
+  arch: arm64
+
+environment:
+  GOOS: linux
+  GOARCH: arm64
+  BUILDPLATFORM: linux/arm64
+  TARGETPLATFORM: linux/arm64
+
+steps:
+  - name: build executable
+    image: quay.io/wasilak/golang:1.17-alpine
+    pull: if-not-exists
+    commands:
+      - go build -o ./dist/elasticsearch-reroute-shards-$${GOOS}-$${GOARCH}
+
+  - name: upload executable
+    image: plugins/s3
+    settings:
+      bucket: drone-cache
+      endpoint: http://minio.service.consul
+      path_style: true
+      access_key:
+        from_secret: aws_access_key_id
+      secret_key:
+        from_secret: aws_secret_access_key
+      region:
+        from_secret: aws_region
+      source: dist/*
+      target: /${DRONE_REPO}/${DRONE_REPO_BRANCH}/${DRONE_BUILD_NUMBER}
+      strip_prefix: dist/
+    depends_on:
+      - build executable
+
+---
+kind: pipeline
+type: docker
+name: create gitea release
+
+workspace:
+  path: /drone/src
+
+platform:
+  os: linux
+  arch: arm64
+
+clone:
+  disable: true
+
+steps:
+  - name: download executable linux/amd64
+    image: plugins/download
+    settings:
+      source: http://minio.service.consul/drone-cache/${DRONE_REPO}/${DRONE_REPO_BRANCH}/${DRONE_BUILD_NUMBER}/elasticsearch-reroute-shards-linux-amd64
+
+  - name: download executable linux/arm64
+    image: plugins/download
+    settings:
+      source: http://minio.service.consul/drone-cache/${DRONE_REPO}/${DRONE_REPO_BRANCH}/${DRONE_BUILD_NUMBER}/elasticsearch-reroute-shards-linux-arm64
+
+  - name: deploy to gitea
+    image: plugins/gitea-release
+    settings:
+      api_key:
+        from_secret: gitea_token
+      base_url: http://git.service.consul
+      files:
+        - /drone/src/elasticsearch-reroute-shards-*
+      title: 0.0.3
+      # note: CHANGELOG_LAST.md # git changelog -s 0.0.13 -f 0.0.13 -l -p CHANGELOG_LAST.md
+      # note: CHANGELOG.md # git changelog -a -p CHANGELOG.md
+      checksum:
+        - md5
+        - sha1
+        - sha256
+        - sha512
+        - adler32
+        - crc32
+    when:
+      event: tag
+    depends_on:
+      - download executable linux/amd64
+      - download executable linux/arm64
+
+depends_on:
+  - build & deploy linux/amd64
+  - build & deploy linux/arm64
+
