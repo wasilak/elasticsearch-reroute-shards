@@ -27,7 +27,7 @@ steps:
     image: plugins/s3
     settings:
       bucket: drone-cache
-      endpoint: http://minio.service.consul
+      endpoint: https://minio-api.service.consul
       path_style: true
       access_key:
         from_secret: aws_access_key_id
@@ -70,7 +70,7 @@ steps:
     image: plugins/s3
     settings:
       bucket: drone-cache
-      endpoint: http://minio.service.consul
+      endpoint: https://minio-api.service.consul
       path_style: true
       access_key:
         from_secret: aws_access_key_id
@@ -103,12 +103,12 @@ steps:
   - name: download executable linux/amd64
     image: plugins/download
     settings:
-      source: http://minio.service.consul/drone-cache/${DRONE_REPO}/${DRONE_REPO_BRANCH}/${DRONE_BUILD_NUMBER}/elasticsearch-reroute-shards-linux-amd64
+      source: https://minio-api.service.consul/drone-cache/${DRONE_REPO}/${DRONE_REPO_BRANCH}/${DRONE_BUILD_NUMBER}/elasticsearch-reroute-shards-linux-amd64
 
   - name: download executable linux/arm64
     image: plugins/download
     settings:
-      source: http://minio.service.consul/drone-cache/${DRONE_REPO}/${DRONE_REPO_BRANCH}/${DRONE_BUILD_NUMBER}/elasticsearch-reroute-shards-linux-arm64
+      source: https://minio-api.service.consul/drone-cache/${DRONE_REPO}/${DRONE_REPO_BRANCH}/${DRONE_BUILD_NUMBER}/elasticsearch-reroute-shards-linux-arm64
 
   - name: deploy to gitea
     image: plugins/gitea-release
