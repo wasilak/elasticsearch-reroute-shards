@@ -120,7 +120,7 @@ steps:
       base_url: http://git.service.consul
       files:
         - /drone/src/elasticsearch-reroute-shards-*
-      title: 0.0.3
+      title: 0.0.1
       # note: CHANGELOG_LAST.md # git changelog -s 0.0.13 -f 0.0.13 -l -p CHANGELOG_LAST.md
       # note: CHANGELOG.md # git changelog -a -p CHANGELOG.md
       checksum:
