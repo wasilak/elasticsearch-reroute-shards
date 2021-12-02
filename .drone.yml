@@ -22,12 +22,17 @@ steps:
     pull: if-not-exists
     commands:
       - go build -o ./dist/elasticsearch-reroute-shards
+
+  - name: compress executable
+    image: quay.io/wasilak/golang:1.17-alpine
+    pull: if-not-exists
+    commands:
       - apk --update add zip
       - cd ./dist
       - chmod +x elasticsearch-reroute-shards
       - zip elasticsearch-reroute-shards-$${GOOS}-$${GOARCH}.zip elasticsearch-reroute-shards
 
-  - name: upload executable
+  - name: upload zip
     image: plugins/s3
     settings:
       bucket: drone-cache
@@ -44,6 +49,7 @@ steps:
       strip_prefix: dist/
     depends_on:
       - build executable
+      - compress executable
 
 ---
 kind: pipeline
@@ -69,12 +75,17 @@ steps:
     pull: if-not-exists
     commands:
       - go build -o ./dist/elasticsearch-reroute-shards
+
+  - name: compress executable
+    image: quay.io/wasilak/golang:1.17-alpine
+    pull: if-not-exists
+    commands:
       - apk --update add zip
       - cd ./dist
       - chmod +x elasticsearch-reroute-shards
       - zip elasticsearch-reroute-shards-$${GOOS}-$${GOARCH}.zip elasticsearch-reroute-shards
 
-  - name: upload executable
+  - name: upload zip
     image: plugins/s3
     settings:
       bucket: drone-cache
@@ -91,6 +102,7 @@ steps:
       strip_prefix: dist/
     depends_on:
       - build executable
+      - compress executable
 
 ---
 kind: pipeline
@@ -111,13 +123,13 @@ steps:
   - name: download executable linux/amd64
     image: plugins/download
     settings:
-      source: http://minio-api.service.consul/drone-cache/${DRONE_REPO}/${DRONE_REPO_BRANCH}/${DRONE_BUILD_NUMBER}/elasticsearch-reroute-shards-linux-amd64
+      source: http://minio-api.service.consul/drone-cache/${DRONE_REPO}/${DRONE_REPO_BRANCH}/${DRONE_BUILD_NUMBER}/elasticsearch-reroute-shards-linux-amd64.zip
       skip_verify: true
 
   - name: download executable linux/arm64
     image: plugins/download
     settings:
-      source: http://minio-api.service.consul/drone-cache/${DRONE_REPO}/${DRONE_REPO_BRANCH}/${DRONE_BUILD_NUMBER}/elasticsearch-reroute-shards-linux-arm64
+      source: http://minio-api.service.consul/drone-cache/${DRONE_REPO}/${DRONE_REPO_BRANCH}/${DRONE_BUILD_NUMBER}/elasticsearch-reroute-shards-linux-arm64.zip
       skip_verify: true
 
   - name: deploy to gitea
