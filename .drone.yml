@@ -31,6 +31,8 @@ steps:
       - cd ./dist
       - chmod +x elasticsearch-reroute-shards
       - zip elasticsearch-reroute-shards-$${GOOS}-$${GOARCH}.zip elasticsearch-reroute-shards
+    depends_on:
+      - build executable
 
   - name: upload zip
     image: plugins/s3
@@ -84,6 +86,8 @@ steps:
       - cd ./dist
       - chmod +x elasticsearch-reroute-shards
       - zip elasticsearch-reroute-shards-$${GOOS}-$${GOARCH}.zip elasticsearch-reroute-shards
+    depends_on:
+      - build executable
 
   - name: upload zip
     image: plugins/s3
