@@ -21,7 +21,11 @@ steps:
     image: quay.io/wasilak/golang:1.17-alpine
     pull: if-not-exists
     commands:
-      - go build -o ./dist/elasticsearch-reroute-shards-$${GOOS}-$${GOARCH}
+      - go build -o ./dist/elasticsearch-reroute-shards
+      - apk --update add zip
+      - cd ./dist
+      - chmod +x elasticsearch-reroute-shards
+      - zip elasticsearch-reroute-shards-$${GOOS}-$${GOARCH}.zip elasticsearch-reroute-shards
 
   - name: upload executable
     image: plugins/s3
@@ -35,7 +39,7 @@ steps:
         from_secret: aws_secret_access_key
       region:
         from_secret: aws_region
-      source: dist/*
+      source: dist/*.zip
       target: /${DRONE_REPO}/${DRONE_REPO_BRANCH}/${DRONE_BUILD_NUMBER}
       strip_prefix: dist/
     depends_on:
@@ -64,7 +68,11 @@ steps:
     image: quay.io/wasilak/golang:1.17-alpine
     pull: if-not-exists
     commands:
-      - go build -o ./dist/elasticsearch-reroute-shards-$${GOOS}-$${GOARCH}
+      - go build -o ./dist/elasticsearch-reroute-shards
+      - apk --update add zip
+      - cd ./dist
+      - chmod +x elasticsearch-reroute-shards
+      - zip elasticsearch-reroute-shards-$${GOOS}-$${GOARCH}.zip elasticsearch-reroute-shards
 
   - name: upload executable
     image: plugins/s3
@@ -78,7 +86,7 @@ steps:
         from_secret: aws_secret_access_key
       region:
         from_secret: aws_region
-      source: dist/*
+      source: dist/*.zip
       target: /${DRONE_REPO}/${DRONE_REPO_BRANCH}/${DRONE_BUILD_NUMBER}
       strip_prefix: dist/
     depends_on:
