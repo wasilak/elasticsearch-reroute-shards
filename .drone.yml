@@ -179,7 +179,7 @@ clone:
   disable: true
 
 steps:
-  - name: download executable linux/amd64
+  - name: download executables
     image: plugins/download
     settings:
       source: http://minio-api.service.consul/drone-cache/${DRONE_REPO}/${DRONE_REPO_BRANCH}/${DRONE_BUILD_NUMBER}/elasticsearch-reroute-shards-*.zip
@@ -245,8 +245,10 @@ steps:
     when:
       event: tag
     depends_on:
-      - download executable linux/amd64
-      - download executable linux/arm64
+      - download executables
+      # - download executable linux/amd64
+      # - download executable linux/arm64
+      # - download executable darwin/amd64
 
 depends_on:
   - build & deploy linux/amd64
