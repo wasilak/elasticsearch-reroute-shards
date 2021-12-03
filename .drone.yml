@@ -13,7 +13,7 @@ platform:
 environment:
   GOOS: linux
   GOARCH: amd64
-  BUILDPLATFORM: linux/amd64
+  BUILDPLATFORM: linux/arm64
   TARGETPLATFORM: linux/amd64
 
 steps:
@@ -70,6 +70,61 @@ environment:
   GOARCH: arm64
   BUILDPLATFORM: linux/arm64
   TARGETPLATFORM: linux/arm64
+
+steps:
+  - name: build executable
+    image: quay.io/wasilak/golang:1.17-alpine
+    pull: if-not-exists
+    commands:
+      - go build -o ./dist/elasticsearch-reroute-shards
+
+  - name: compress executable
+    image: quay.io/wasilak/golang:1.17-alpine
+    pull: if-not-exists
+    commands:
+      - apk --update add zip
+      - cd ./dist
+      - chmod +x elasticsearch-reroute-shards
+      - zip elasticsearch-reroute-shards-$${GOOS}-$${GOARCH}.zip elasticsearch-reroute-shards
+    depends_on:
+      - build executable
+
+  - name: upload zip
+    image: plugins/s3
+    settings:
+      bucket: drone-cache
+      endpoint: http://minio-api.service.consul
+      path_style: true
+      access_key:
+        from_secret: aws_access_key_id
+      secret_key:
+        from_secret: aws_secret_access_key
+      region:
+        from_secret: aws_region
+      source: dist/*.zip
+      target: /${DRONE_REPO}/${DRONE_REPO_BRANCH}/${DRONE_BUILD_NUMBER}
+      strip_prefix: dist/
+    depends_on:
+      - build executable
+      - compress executable
+
+---
+kind: pipeline
+type: docker
+name: build & deploy darwin/amd64
+
+workspace:
+  path: /drone/src
+
+platform:
+  os: linux
+  arch: arm64
+
+environment:
+  GOOS: linux
+  GOARCH: arm64
+  BUILDPLATFORM: linux/amd64
+  TARGETPLATFORM: darwin/amd64
 
 steps:
   - name: build executable
