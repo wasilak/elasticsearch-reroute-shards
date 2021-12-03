@@ -182,24 +182,24 @@ steps:
   - name: download executable linux/amd64
     image: plugins/download
     settings:
-      source: http://minio-api.service.consul/drone-cache/${DRONE_REPO}/${DRONE_REPO_BRANCH}/${DRONE_BUILD_NUMBER}/elasticsearch-reroute-shards-linux-amd64.zip
+      source: http://minio-api.service.consul/drone-cache/${DRONE_REPO}/${DRONE_REPO_BRANCH}/${DRONE_BUILD_NUMBER}/elasticsearch-reroute-shards-*.zip
       skip_verify: true
     # when:
     #   event: tag
 
-  - name: download executable linux/arm64
-    image: plugins/download
-    settings:
-      source: http://minio-api.service.consul/drone-cache/${DRONE_REPO}/${DRONE_REPO_BRANCH}/${DRONE_BUILD_NUMBER}/elasticsearch-reroute-shards-linux-arm64.zip
-      skip_verify: true
-    # when:
-    #   event: tag
+  # - name: download executable linux/arm64
+  #   image: plugins/download
+  #   settings:
+  #     source: http://minio-api.service.consul/drone-cache/${DRONE_REPO}/${DRONE_REPO_BRANCH}/${DRONE_BUILD_NUMBER}/elasticsearch-reroute-shards-linux-arm64.zip
+  #     skip_verify: true
+  #   # when:
+  #   #   event: tag
 
-  - name: download executable darwin/amd64
-    image: plugins/download
-    settings:
-      source: http://minio-api.service.consul/drone-cache/${DRONE_REPO}/${DRONE_REPO_BRANCH}/${DRONE_BUILD_NUMBER}/elasticsearch-reroute-shards-darwin-amd64.zip
-      skip_verify: true
+  # - name: download executable darwin/amd64
+  #   image: plugins/download
+  #   settings:
+  #     source: http://minio-api.service.consul/drone-cache/${DRONE_REPO}/${DRONE_REPO_BRANCH}/${DRONE_BUILD_NUMBER}/elasticsearch-reroute-shards-darwin-amd64.zip
+  #     skip_verify: true
     # when:
     #   event: tag
 
