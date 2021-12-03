@@ -140,7 +140,7 @@ steps:
     when:
       event: tag
 
-  - name: deploy to gitea
+  - name: deploy to Gitea
     image: plugins/gitea-release
     settings:
       api_key:
@@ -158,6 +158,28 @@ steps:
         - sha512
         - adler32
         - crc32
+    when:
+      event: tag
+    depends_on:
+      - download executable linux/amd64
+      - download executable linux/arm64
+
+  - name: deploy to GitHub
+    image: plugins/github-release
+    settings:
+      api_key:
+        from_secret: github_token
+      files:
+        - /drone/src/elasticsearch-reroute-shards-*
+    title: 0.0.1
+    # note: CHANGELOG.md
+    checksum:
+      - md5
+      - sha1
+      - sha256
+      - sha512
+      - adler32
+      - crc32
     when:
       event: tag
     depends_on:
