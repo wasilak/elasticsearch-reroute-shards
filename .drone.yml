@@ -121,8 +121,8 @@ platform:
   arch: arm64
 
 environment:
-  GOOS: linux
-  GOARCH: arm64
+  GOOS: darwin
+  GOARCH: amd64
   BUILDPLATFORM: linux/amd64
   TARGETPLATFORM: darwin/amd64
 
