@@ -111,7 +111,7 @@ steps:
 ---
 kind: pipeline
 type: docker
-name: create gitea release
+name: create & deploy releases
 
 workspace:
   path: /drone/src
