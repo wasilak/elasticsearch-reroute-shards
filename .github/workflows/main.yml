@@ -44,6 +44,9 @@ jobs:
 
       - name: Build executable
         run: go build -o ./dist/elasticsearch-reroute-shards
+        env:
+          GOOS: ${{ matrix.os }}
+          GOARCH: ${{ matrix.arch }}
         
       - name: compress executable
         run: |
