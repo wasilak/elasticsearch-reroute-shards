@@ -27,13 +27,16 @@ func basicAuth(username, password string) string {
 
 func (e *Elastic) runRequest(method string, url string, target interface{}, payload []byte) error {
 	req, err := http.NewRequest(method, url, bytes.NewBuffer(payload))
+	if err != nil {
+		e.Logger.Instance.Fatal(err)
+	}
 
 	req.Header.Add("Authorization", "Basic "+basicAuth(e.HttpUsername, e.HttpPassword))
 	req.Header.Add("Content-Type", "application/json")
 
 	resp, err := e.HttpClient.Do(req)
 	if err != nil {
-		return err
+		e.Logger.Instance.Fatal(err)
 	}
 
 	defer resp.Body.Close()
