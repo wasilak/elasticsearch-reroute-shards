@@ -60,7 +60,7 @@ jobs:
           generate_release_notes: true
           repository: wasilak/elasticsearch-reroute-shards
           files: |
-            elasticsearch-reroute-shards*.zip
+            dist/elasticsearch-reroute-shards*.zip
         
 
 #       # Runs a set of commands using the runners shell
