@@ -53,16 +53,6 @@ jobs:
           cd ./dist
           chmod +x elasticsearch-reroute-shards
           zip elasticsearch-reroute-shards-${{ matrix.os }}-${{ matrix.arch }}.zip elasticsearch-reroute-shards
-          ls -lha
-          sha256sum elasticsearch-reroute-shards-${{ matrix.os }}-${{ matrix.arch }}.zip | awk '{print $1}' > elasticsearch-reroute-shards-${{ matrix.os }}-${{ matrix.arch }}.sha256
-          cat elasticsearch-reroute-shards-${{ matrix.os }}-${{ matrix.arch }}.sha256
-          echo $(sha256sum elasticsearch-reroute-shards-${{ matrix.os }}-${{ matrix.arch }}.zip)
-          echo $(openssl sha256 < elasticsearch-reroute-shards-${{ matrix.os }}-${{ matrix.arch }}.zip)
-          rm -fr elasticsearch-reroute-shards
-          sha256sum elasticsearch-reroute-shards-${{ matrix.os }}-${{ matrix.arch }}.zip | awk '{print $1}' > elasticsearch-reroute-shards-${{ matrix.os }}-${{ matrix.arch }}.sha256
-          cat elasticsearch-reroute-shards-${{ matrix.os }}-${{ matrix.arch }}.sha256
-          echo $(sha256sum elasticsearch-reroute-shards-${{ matrix.os }}-${{ matrix.arch }}.zip)
-          echo $(openssl sha256 < elasticsearch-reroute-shards-${{ matrix.os }}-${{ matrix.arch }}.zip)
 
       - name: Release
         uses: softprops/action-gh-release@v1
@@ -72,4 +62,3 @@ jobs:
           repository: wasilak/elasticsearch-reroute-shards
           files: |
             dist/elasticsearch-reroute-shards*.zip
-            dist/elasticsearch-reroute-shards*.sha256
