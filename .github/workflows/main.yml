@@ -6,11 +6,11 @@ name: CI
 on:
   # Triggers the workflow on push or pull request events but only for the main branch
   push:
-    branches: [ main ]
+    branches: [main]
     tags:
-      - '*'
+      - "*"
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
@@ -21,7 +21,7 @@ jobs:
   build:
     # The type of runner that the job will run on
     runs-on: ubuntu-latest
-    
+
     strategy:
       matrix:
         os: [linux, darwin]
@@ -31,12 +31,12 @@ jobs:
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v2
-      
+
       - name: Setup Go environment
         uses: actions/setup-go@v2.1.4
         with:
           # The Go version to download (if necessary) and use. Supports semver spec and ranges.
-          go-version: 1.16
+          go-version: 1.17
           # Whether to download only stable versions
           # stable: # optional, default is true
           # Used to pull node distributions from go-versions.  Since there's a default, this is typically not supplied by the user.
@@ -47,14 +47,16 @@ jobs:
         env:
           GOOS: ${{ matrix.os }}
           GOARCH: ${{ matrix.arch }}
-        
+
       - name: compress executable
         run: |
           cd ./dist
           chmod +x elasticsearch-reroute-shards
           zip elasticsearch-reroute-shards-${{ matrix.os }}-${{ matrix.arch }}.zip elasticsearch-reroute-shards
           sha256sum elasticsearch-reroute-shards-${{ matrix.os }}-${{ matrix.arch }}.zip | awk '{print $1}' > elasticsearch-reroute-shards-${{ matrix.os }}-${{ matrix.arch }}.sha256
-          
+          echo sha256sum elasticsearch-reroute-shards-${{ matrix.os }}-${{ matrix.arch }}.zip
+          cat elasticsearch-reroute-shards-${{ matrix.os }}-${{ matrix.arch }}.sha256
+
       - name: Release
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
