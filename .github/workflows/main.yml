@@ -63,3 +63,4 @@ jobs:
           repository: wasilak/elasticsearch-reroute-shards
           files: |
             dist/elasticsearch-reroute-shards*.zip
+            dist/elasticsearch-reroute-shards*.sha256
