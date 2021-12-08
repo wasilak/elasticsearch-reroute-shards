@@ -44,14 +44,14 @@ func main() {
 	viper.SetEnvKeyReplacer(replacer)
 	viper.AutomaticEnv()
 
+	if viper.GetBool("version") {
+		fmt.Println(AppVersion)
+		os.Exit(0)
+	}
+
 	logger := new(libs.Logger)
 
 	logger.Init(viper.GetString("log-format"))
-
-	if viper.GetBool("version") {
-		fmt.Printf("Version = %+v\n", AppVersion)
-		os.Exit(0)
-	}
 
 	if viper.GetBool("debug") == true {
 		logger.Instance.Info(viper.AllSettings())
