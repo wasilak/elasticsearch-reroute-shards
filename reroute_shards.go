@@ -13,6 +13,8 @@ import (
 	"github.com/wasilak/es_rebalance/libs"
 )
 
+const AppVersion = "0.0.2"
+
 func main() {
 
 	pflag.Usage = func() {
@@ -31,6 +33,7 @@ func main() {
 	flag.String("username", "", "Elasticsearch username")
 	flag.String("password", "", "Elasticsearch password")
 	flag.String("log-format", "plain", "Log format [json, plain]")
+	flag.Bool("version", false, "Print current version")
 
 	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
 	pflag.Parse()
@@ -44,6 +47,11 @@ func main() {
 	logger := new(libs.Logger)
 
 	logger.Init(viper.GetString("log-format"))
+
+	if viper.GetBool("version") {
+		fmt.Printf("Version = %+v\n", AppVersion)
+		os.Exit(0)
+	}
 
 	if viper.GetBool("debug") == true {
 		logger.Instance.Info(viper.AllSettings())
