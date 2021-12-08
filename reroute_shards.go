@@ -13,7 +13,7 @@ import (
 	"github.com/wasilak/es_rebalance/libs"
 )
 
-const AppVersion = "0.0.2"
+const AppVersion = "0.0.3"
 
 func main() {
 
