@@ -53,7 +53,7 @@ jobs:
           cd ./dist
           chmod +x elasticsearch-reroute-shards
           zip elasticsearch-reroute-shards-${{ matrix.os }}-${{ matrix.arch }}.zip elasticsearch-reroute-shards
-          sha256sum elasticsearch-reroute-shards-${{ matrix.os }}-${{ matrix.arch }}.zip  awk '{print $1}' > elasticsearch-reroute-shards-${{ matrix.os }}-${{ matrix.arch }}.sha256
+          sha256sum elasticsearch-reroute-shards-${{ matrix.os }}-${{ matrix.arch }}.zip | awk '{print $1}' > elasticsearch-reroute-shards-${{ matrix.os }}-${{ matrix.arch }}.sha256
           
       - name: Release
         uses: softprops/action-gh-release@v1
