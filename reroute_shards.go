@@ -10,7 +10,7 @@ import (
 
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
-	"github.com/wasilak/es_rebalance/libs"
+	"github.com/wasilak/elasticsearch-reroute-shards/libs"
 )
 
 const AppVersion = "0.0.3"
