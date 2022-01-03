@@ -1,4 +1,4 @@
-module github.com/wasilak/es_rebalance
+module github.com/wasilak/elasticsearch-reroute-shards
 
 go 1.15
 
