@@ -13,7 +13,7 @@ import (
 	"github.com/wasilak/elasticsearch-reroute-shards/libs"
 )
 
-const AppVersion = "0.0.3"
+const AppVersion = "0.0.5"
 
 func main() {
 
@@ -33,6 +33,7 @@ func main() {
 	flag.String("username", "", "Elasticsearch username")
 	flag.String("password", "", "Elasticsearch password")
 	flag.String("log-format", "plain", "Log format [json, plain]")
+	flag.String("log-file", "", "Log file path")
 	flag.Bool("version", false, "Print current version")
 
 	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
@@ -51,7 +52,7 @@ func main() {
 
 	logger := new(libs.Logger)
 
-	logger.Init(viper.GetString("log-format"))
+	logger.Init(viper.GetString("log-format"), viper.GetString("log-file"))
 
 	if viper.GetBool("debug") == true {
 		logger.Instance.Info(viper.AllSettings())
