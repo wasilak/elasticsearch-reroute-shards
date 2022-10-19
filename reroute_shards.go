@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	"github.com/wasilak/elasticsearch-reroute-shards/libs"
@@ -65,9 +66,27 @@ func main() {
 		HttpPassword: viper.GetString("password"),
 	}
 
+	t := table.NewWriter()
+	t.SetOutputMirror(os.Stdout)
+
 	if viper.GetBool("dry-run") {
-		logger.Instance.Info("--------------- DRY-RUN no operation will be performed ---------------")
+		// logger.Instance.Info("--------------- DRY-RUN no operation will be performed ---------------")
+		t1 := table.NewWriter()
+		t1.SetStyle(table.StyleDouble)
+		t1.SetOutputMirror(os.Stdout)
+		t1.AppendRow(table.Row{"DRY-RUN no operation will be performed"})
+		t1.Render()
 	}
+
+	t.AppendHeader(table.Row{"#", "First Name", "Last Name", "Salary"})
+	t.AppendRows([]table.Row{
+		{1, "Arya", "Stark", 3000},
+		{20, "Jon", "Snow", 2000, "You know nothing, Jon Snow!"},
+	})
+	t.AppendSeparator()
+	t.AppendRow([]interface{}{300, "Tyrion", "Lannister", 5000})
+	t.AppendFooter(table.Row{"", "", "Total", 10000})
+	t.Render()
 
 	rebalanceInfo := elastic.GetDiskSpaceInfo(viper.GetString("host"), viper.GetInt("allowed-percent-of-difference"), viper.GetString("from-node"), viper.GetString("to-node"))
 
