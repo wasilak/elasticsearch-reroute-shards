@@ -8,13 +8,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	"github.com/wasilak/elasticsearch-reroute-shards/libs"
 )
 
-const AppVersion = "0.0.5"
+const AppVersion = "0.0.6"
 
 func main() {
 
@@ -55,8 +54,12 @@ func main() {
 
 	logger.Init(viper.GetString("log-format"), viper.GetString("log-file"))
 
-	if viper.GetBool("debug") == true {
-		logger.Instance.Info(viper.AllSettings())
+	if viper.GetBool("debug") {
+		if viper.GetString("log-format") == "json" {
+			logger.Instance.Info(viper.AllSettings())
+		} else {
+			libs.SettingsToTable(viper.AllSettings())
+		}
 	}
 
 	elastic := libs.Elastic{
@@ -66,46 +69,52 @@ func main() {
 		HttpPassword: viper.GetString("password"),
 	}
 
-	t := table.NewWriter()
-	t.SetOutputMirror(os.Stdout)
-
 	if viper.GetBool("dry-run") {
-		// logger.Instance.Info("--------------- DRY-RUN no operation will be performed ---------------")
-		t1 := table.NewWriter()
-		t1.SetStyle(table.StyleDouble)
-		t1.SetOutputMirror(os.Stdout)
-		t1.AppendRow(table.Row{"DRY-RUN no operation will be performed"})
-		t1.Render()
+		if viper.GetString("log-format") == "json" {
+			logger.Instance.Info("--------------- DRY-RUN no operation will be performed ---------------")
+		} else {
+			libs.DryRunTable()
+		}
 	}
-
-	t.AppendHeader(table.Row{"#", "First Name", "Last Name", "Salary"})
-	t.AppendRows([]table.Row{
-		{1, "Arya", "Stark", 3000},
-		{20, "Jon", "Snow", 2000, "You know nothing, Jon Snow!"},
-	})
-	t.AppendSeparator()
-	t.AppendRow([]interface{}{300, "Tyrion", "Lannister", 5000})
-	t.AppendFooter(table.Row{"", "", "Total", 10000})
-	t.Render()
 
 	rebalanceInfo := elastic.GetDiskSpaceInfo(viper.GetString("host"), viper.GetInt("allowed-percent-of-difference"), viper.GetString("from-node"), viper.GetString("to-node"))
 
 	if viper.GetBool("debug") {
-		logger.Instance.Info(fmt.Sprintf("proceedWithRebalance = %+v", rebalanceInfo))
+		if viper.GetString("log-format") == "json" {
+			logger.Instance.Info(fmt.Sprintf("proceedWithRebalance = %+v", rebalanceInfo))
+		} else {
+			libs.RebalanceInfoToTable(rebalanceInfo)
+		}
 	}
 
 	shardsAvailableForMove := elastic.GetShardsInfo(viper.GetString("host"), rebalanceInfo, viper.GetInt("shards"))
 
 	if viper.GetBool("debug") {
-		logger.Instance.Info(fmt.Sprintf("[%+v] shardsAvailableForMove = %+v", viper.GetInt("shards"), shardsAvailableForMove))
+		if viper.GetString("log-format") == "json" {
+			logger.Instance.Info(fmt.Sprintf("[%+v] shardsAvailableForMove = %+v", viper.GetInt("shards"), shardsAvailableForMove))
+		} else {
+			libs.ShardsAvailableForMoveToTable(shardsAvailableForMove)
+		}
 	}
 
 	moveCommands := elastic.PrepareMoveCommand(shardsAvailableForMove, rebalanceInfo.Largest.Name, rebalanceInfo.Smallest.Name)
 
 	if viper.GetBool("debug") {
-		logger.Instance.Info(fmt.Sprintf("moveCommands = %+v", moveCommands))
+		if viper.GetString("log-format") == "json" {
+			logger.Instance.Info(fmt.Sprintf("moveCommands = %+v", moveCommands))
+		} else {
+			libs.MoveCommandsToTable(moveCommands.Commands)
+		}
 	}
 
-	elastic.ExecuteMoveCommands(viper.GetString("host"), moveCommands, viper.GetBool("dry-run"))
+	rerouteResponse := elastic.ExecuteMoveCommands(viper.GetString("host"), moveCommands, viper.GetBool("dry-run"))
+
+	if viper.GetBool("debug") {
+		if viper.GetString("log-format") == "json" {
+			logger.Instance.Info(fmt.Sprintf("rerouteResponse = %+v", rerouteResponse))
+		} else {
+			libs.RerouteResponseToTable(rerouteResponse)
+		}
+	}
 
 }

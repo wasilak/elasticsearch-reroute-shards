@@ -279,10 +279,10 @@ func (e Elastic) PrepareMoveCommand(shards []shard, fromNode, toNode string) Sha
 	return shardsReroute
 }
 
-func (e Elastic) ExecuteMoveCommands(url string, moveCommands ShardsReroute, dryRun bool) {
+func (e Elastic) ExecuteMoveCommands(url string, moveCommands ShardsReroute, dryRun bool) rerouteResponse {
 
 	bytesMoveCommand, _ := json.Marshal(moveCommands)
-	e.Logger.Instance.Info(fmt.Sprintf("moveCommands = %+v", string(bytesMoveCommand)))
+	// e.Logger.Instance.Info(fmt.Sprintf("moveCommands = %+v", string(bytesMoveCommand)))
 
 	reroute := rerouteResponse{}
 	err := e.runRequest("POST", fmt.Sprintf("%s/_cluster/reroute?dry_run="+strconv.FormatBool(dryRun), url), &reroute, bytesMoveCommand)
@@ -290,5 +290,5 @@ func (e Elastic) ExecuteMoveCommands(url string, moveCommands ShardsReroute, dry
 		e.Logger.Instance.Fatal(err)
 	}
 
-	e.Logger.Instance.Info(fmt.Sprintf("rerouteResponse = %+v", reroute))
+	return reroute
 }
