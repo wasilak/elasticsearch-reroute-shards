@@ -13,7 +13,7 @@ import (
 	"github.com/wasilak/elasticsearch-reroute-shards/libs"
 )
 
-const AppVersion = "v0.0.6"
+const AppVersion = "v1.0.0"
 
 func main() {
 
