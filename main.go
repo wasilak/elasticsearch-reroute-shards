@@ -109,12 +109,10 @@ func main() {
 
 	rerouteResponse := elastic.ExecuteMoveCommands(viper.GetString("host"), moveCommands, viper.GetBool("dry-run"))
 
-	if viper.GetBool("debug") {
-		if viper.GetString("log-format") == "json" {
-			logger.Instance.Info(fmt.Sprintf("rerouteResponse = %+v", rerouteResponse))
-		} else {
-			libs.RerouteResponseToTable(rerouteResponse)
-		}
+	if viper.GetString("log-format") == "json" {
+		logger.Instance.Info(fmt.Sprintf("rerouteResponse = %+v", rerouteResponse))
+	} else {
+		libs.RerouteResponseToTable(rerouteResponse)
 	}
 
 }
