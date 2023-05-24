@@ -14,7 +14,6 @@ import (
 )
 
 type Elastic struct {
-	Logger       *Logger
 	HttpClient   *http.Client
 	HttpUsername string
 	HttpPassword string
@@ -28,7 +27,7 @@ func basicAuth(username, password string) string {
 func (e *Elastic) runRequest(method string, url string, target interface{}, payload []byte) error {
 	req, err := http.NewRequest(method, url, bytes.NewBuffer(payload))
 	if err != nil {
-		e.Logger.Instance.Fatal(err)
+		panic(err)
 	}
 
 	req.Header.Add("Authorization", "Basic "+basicAuth(e.HttpUsername, e.HttpPassword))
@@ -36,7 +35,7 @@ func (e *Elastic) runRequest(method string, url string, target interface{}, payl
 
 	resp, err := e.HttpClient.Do(req)
 	if err != nil {
-		e.Logger.Instance.Fatal(err)
+		panic(err)
 	}
 
 	defer resp.Body.Close()
@@ -113,7 +112,7 @@ func (e Elastic) GetDiskSpaceInfo(url string, allowedPercentOfDifference int, fr
 	var payload []byte
 	err := e.runRequest("GET", fmt.Sprintf("%s/_cat/nodes?v&h=name,disk.used,node.role&format=json&bytes=b", url), &diskSpaceInfo, payload)
 	if err != nil {
-		e.Logger.Instance.Fatal(err)
+		panic(err)
 	}
 
 	// filter only data nodes
@@ -168,7 +167,7 @@ func (e Elastic) GetDiskSpaceInfo(url string, allowedPercentOfDifference int, fr
 
 	// is rebalance needed?
 	// proceedWithRebalance := maxDiffInSizePercent > int64(allowedPercentOfDifference)
-	// e.Logger.Instance.Info(fmt.Sprintf("proceedWithRebalance = %+v", proceedWithRebalance))
+	// slog.Info(fmt.Sprintf("proceedWithRebalance = %+v", proceedWithRebalance))
 
 	// # based on standard deviation percentage
 	// # https://www.chem.tamu.edu/class/fyp/keeney/stddev.pdf
@@ -207,7 +206,7 @@ func (e Elastic) GetShardsInfo(url string, diskSpaceInfo rebalanceInfo, shardsTo
 	var payload []byte
 	err := e.runRequest("GET", fmt.Sprintf("%s/_cat/shards?format=json&bytes=b", url), &shardsInfo, payload)
 	if err != nil {
-		e.Logger.Instance.Fatal(err)
+		panic(err)
 	}
 
 	// shards on source
@@ -282,12 +281,12 @@ func (e Elastic) PrepareMoveCommand(shards []shard, fromNode, toNode string) Sha
 func (e Elastic) ExecuteMoveCommands(url string, moveCommands ShardsReroute, dryRun bool) rerouteResponse {
 
 	bytesMoveCommand, _ := json.Marshal(moveCommands)
-	// e.Logger.Instance.Info(fmt.Sprintf("moveCommands = %+v", string(bytesMoveCommand)))
+	// slog.Info(fmt.Sprintf("moveCommands = %+v", string(bytesMoveCommand)))
 
 	reroute := rerouteResponse{}
 	err := e.runRequest("POST", fmt.Sprintf("%s/_cluster/reroute?dry_run="+strconv.FormatBool(dryRun), url), &reroute, bytesMoveCommand)
 	if err != nil {
-		e.Logger.Instance.Fatal(err)
+		panic(err)
 	}
 
 	return reroute
