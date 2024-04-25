@@ -55,7 +55,7 @@ jobs:
           zip elasticsearch-reroute-shards-${{ matrix.os }}-${{ matrix.arch }}.zip elasticsearch-reroute-shards
 
       - name: Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/')
         with:
           generate_release_notes: true
