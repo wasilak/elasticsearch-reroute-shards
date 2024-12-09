@@ -3,7 +3,7 @@ module github.com/wasilak/elasticsearch-reroute-shards
 go 1.23
 
 require (
-	github.com/jedib0t/go-pretty/v6 v6.6.3
+	github.com/jedib0t/go-pretty/v6 v6.6.4
 	github.com/joho/godotenv v1.5.1
 	github.com/montanaflynn/stats v0.7.1
 	github.com/spf13/cobra v1.8.1
