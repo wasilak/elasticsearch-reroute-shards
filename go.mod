@@ -8,7 +8,7 @@ require (
 	github.com/jedib0t/go-pretty/v6 v6.6.6
 	github.com/joho/godotenv v1.5.1
 	github.com/montanaflynn/stats v0.7.1
-	github.com/spf13/cobra v1.9.0
+	github.com/spf13/cobra v1.9.1
 	github.com/spf13/viper v1.19.0
 	golang.org/x/exp v0.0.0-20250215185904-eff6e970281f
 )
