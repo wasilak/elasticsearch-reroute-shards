@@ -2,7 +2,7 @@ module github.com/wasilak/elasticsearch-reroute-shards
 
 go 1.25.0
 
-toolchain go1.26.3
+toolchain go1.26.4
 
 require (
 	github.com/jedib0t/go-pretty/v6 v6.7.10
