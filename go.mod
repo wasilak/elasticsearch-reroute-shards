@@ -5,7 +5,7 @@ go 1.25.0
 toolchain go1.26.4
 
 require (
-	github.com/jedib0t/go-pretty/v6 v6.8.1
+	github.com/jedib0t/go-pretty/v6 v6.8.2
 	github.com/joho/godotenv v1.5.1
 	github.com/montanaflynn/stats v0.9.0
 	github.com/spf13/cobra v1.10.2
