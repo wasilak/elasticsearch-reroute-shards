@@ -1,6 +1,6 @@
 module github.com/wasilak/elasticsearch-reroute-shards
 
-go 1.25.0
+go 1.26.0
 
 toolchain go1.27.0
 
@@ -10,7 +10,7 @@ require (
 	github.com/montanaflynn/stats v0.12.4
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/viper v1.21.0
-	golang.org/x/exp v0.0.0-20260813180055-c1d0aacb2297
+	golang.org/x/exp v0.0.0-20260820142414-ca536658362e
 )
 
 require (
