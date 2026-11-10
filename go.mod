@@ -10,7 +10,7 @@ require (
 	github.com/montanaflynn/stats v0.14.0
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/viper v1.21.0
-	golang.org/x/exp v0.0.0-20261106192419-47ce03d25ef0
+	golang.org/x/exp v0.0.0-20261109185158-a52e3aef5920
 )
 
 require (
